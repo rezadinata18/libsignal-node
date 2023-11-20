@@ -267,18 +267,18 @@ class SessionRecord {
 
     closeSession(session) {
         if (this.isClosed(session)) {
-            console.warn("Session already closed", session);
+            
             return;
         }
-        console.info("Closing session:", session);
+        
         session.indexInfo.closed = Date.now();
     }
 
     openSession(session) {
         if (!this.isClosed(session)) {
-            console.warn("Session already open");
+            
         }
-        console.info("Opening session:", session);
+        
         session.indexInfo.closed = -1;
     }
 
