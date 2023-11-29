@@ -14,7 +14,7 @@ const VERSION = 3;
 
 function assertBuffer(value) {
     if (!(value instanceof Buffer)) {
-        throw TypeError(`Expected Buffer instead of: ${value.constructor.name}`);
+        throw 
     }
     return value;
 }
@@ -24,7 +24,7 @@ class SessionCipher {
 
     constructor(storage, protocolAddress) {
         if (!(protocolAddress instanceof ProtocolAddress)) {
-            throw new TypeError("protocolAddress must be a ProtocolAddress");
+            throw 
         }
         this.addr = protocolAddress;
         this.storage = storage;
@@ -32,7 +32,7 @@ class SessionCipher {
 
     _encodeTupleByte(number1, number2) {
         if (number1 > 15 || number2 > 15) {
-            throw TypeError("Numbers must be 4 bits or less");
+            throw 
         }
         return (number1 << 4) | number2;
     }
@@ -48,7 +48,7 @@ class SessionCipher {
     async getRecord() {
         const record = await this.storage.loadSession(this.addr.toString());
         if (record && !(record instanceof SessionRecord)) {
-            throw new TypeError('SessionRecord type expected from loadSession'); 
+            throw 
         }
         return record;
     }
@@ -68,19 +68,19 @@ class SessionCipher {
         return await this.queueJob(async () => {
             const record = await this.getRecord();
             if (!record) {
-                throw new errors.SessionError("No sessions");
+                throw 
             }
             const session = record.getOpenSession();
             if (!session) {
-                throw new errors.SessionError("No open session");
+                throw 
             }
             const remoteIdentityKey = session.indexInfo.remoteIdentityKey;
             if (!await this.storage.isTrustedIdentity(this.addr.id, remoteIdentityKey)) {
-                throw new errors.UntrustedIdentityKeyError(this.addr.id, remoteIdentityKey);
+                throw 
             }
             const chain = session.getChain(session.currentRatchet.ephemeralKeyPair.pubKey);
             if (chain.chainType === ChainType.RECEIVING) {
-                throw new Error("Tried to encrypt on a receiving chain");
+                throw 
             }
             this.fillMessageKeys(chain, chain.chainKey.counter + 1);
             const keys = crypto.deriveSecrets(chain.messageKeys[chain.chainKey.counter],
@@ -138,7 +138,7 @@ class SessionCipher {
         // Iterate through the sessions, attempting to decrypt using each one.
         // Stop and return the result if we get a valid result.
         if (!sessions.length) {
-            throw new errors.SessionError("No sessions available");
+            throw 
         }   
         const errs = [];
         for (const session of sessions) {
@@ -158,7 +158,7 @@ class SessionCipher {
         for (const e of errs) {
           
         }
-        throw new errors.SessionError("No matching sessions found for message");
+        throw 
     }
 
     async decryptWhisperMessage(data) {
@@ -166,12 +166,12 @@ class SessionCipher {
         return await this.queueJob(async () => {
             const record = await this.getRecord();
             if (!record) {
-                throw new errors.SessionError("No session record");
+                throw 
             }
             const result = await this.decryptWithSessions(data, record.getSessions());
             const remoteIdentityKey = result.session.indexInfo.remoteIdentityKey;
             if (!await this.storage.isTrustedIdentity(this.addr.id, remoteIdentityKey)) {
-                throw new errors.UntrustedIdentityKeyError(this.addr.id, remoteIdentityKey);
+                throw 
             }   
             if (record.isClosed(result.session)) {
                 // It's possible for this to happen when processing a backlog of messages.
@@ -190,14 +190,14 @@ class SessionCipher {
         assertBuffer(data);
         const versions = this._decodeTupleByte(data[0]);
         if (versions[1] > 3 || versions[0] < 3) {  // min version > 3 or max version < 3
-            throw new Error("Incompatible version number on PreKeyWhisperMessage");
+            throw 
         }
         return await this.queueJob(async () => {
             let record = await this.getRecord();
             const preKeyProto = protobufs.PreKeyWhisperMessage.decode(data.slice(1));
             if (!record) {
                 if (preKeyProto.registrationId == null) {
-                    throw new Error("No registrationId");
+                    throw 
                 }
                 record = new SessionRecord();
             }
@@ -216,24 +216,24 @@ class SessionCipher {
     async doDecryptWhisperMessage(messageBuffer, session) {
         assertBuffer(messageBuffer);
         if (!session) {
-            throw new TypeError("session required");
+            throw 
         }
         const versions = this._decodeTupleByte(messageBuffer[0]);
         if (versions[1] > 3 || versions[0] < 3) {  // min version > 3 or max version < 3
-            throw new Error("Incompatible version number on WhisperMessage");
+            throw 
         }
         const messageProto = messageBuffer.slice(1, -8);
         const message = protobufs.WhisperMessage.decode(messageProto);
         this.maybeStepRatchet(session, message.ephemeralKey, message.previousCounter);
         const chain = session.getChain(message.ephemeralKey);
         if (chain.chainType === ChainType.SENDING) {
-            throw new Error("Tried to decrypt on a sending chain");
+            throw 
         }
         this.fillMessageKeys(chain, message.counter);
         if (!chain.messageKeys.hasOwnProperty(message.counter)) {
             // Most likely the message was already decrypted and we are trying to process
             // twice.  This can happen if the user restarts before the server gets an ACK.
-            throw new errors.MessageCounterError('Key used already or never filled');
+            throw 
         }
         const messageKey = chain.messageKeys[message.counter];
         delete chain.messageKeys[message.counter];
@@ -258,10 +258,10 @@ class SessionCipher {
             return;
         }
         if (counter - chain.chainKey.counter > 2000) {
-            throw new errors.SessionError('Over 2000 messages into the future!');
+            throw 
         }
         if (chain.chainKey.key === undefined) {
-            throw new errors.SessionError('Chain closed');
+            throw 
         }
         const key = chain.chainKey.key;
         chain.messageKeys[chain.chainKey.counter + 1] = crypto.calculateMAC(key, Buffer.from([1]));
